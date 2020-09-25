@@ -13,15 +13,16 @@ spec:
   template:
     metadata:
       annotations:
-        {{- if not .Values.config.prometheus.disable }}
-        prometheus.io/path: /metrics
-        prometheus.io/port: "9130"
-        prometheus.io/scrape: "true"
-        {{- end }}
         checksum/configmap: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    {{- with .Values.pod.annotations }}
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
       labels:
         app.kubernetes.io/name: {{ include "unifi-poller.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- with .Values.pod.labels }}
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
     spec:
     {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

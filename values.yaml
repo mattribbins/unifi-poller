@@ -36,6 +36,10 @@ service:
   port: 9130
   annotations: {}
 
+pod:
+  annotations: {}
+  labels: {}
+
 ingress:
   enabled: false
   annotations: {}
