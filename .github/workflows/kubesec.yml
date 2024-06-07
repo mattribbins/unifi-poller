@@ -37,7 +37,9 @@ jobs:
         with:
           image: kubesec/kubesec:v2
           options: -v ${{ github.workspace }}:/work:rw --user 1001:1001
-          run: kubesec scan /work/rendered.yaml | jq --exit-status '.score > 10' >/dev/null
+          run: |
+            apk --update add jq
+            kubesec scan /work/rendered.yaml | jq --exit-status '.score > 10' >/dev/null
 
       # TODO: Set up proper posting to GitHub Security
       #- name: Run kubesec scanner with SARIF output
