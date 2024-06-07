@@ -1,0 +1,55 @@
+name: Kubesec
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ "master" ]
+  schedule:
+    - cron: '17 18 * * 4'
+
+jobs:
+  lint:
+    name: Kubesec
+    runs-on: ubuntu-20.04
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.14.4
+
+      - name: Render chart
+        run: |
+          mkdir -p /tmp/rendered/
+          helm template ./ --namespace unifi-poller --values values.yaml --output-dir /tmp/rendered
+          find /tmp/rendered/unifi-poller/templates -type f -name "*.yaml" -exec sh -c "echo '---' | cat - {}" \; > rendered.yaml
+
+      - name: Run kubesec scanner
+        uses: addnab/docker-run-action@v3
+        with:
+          image: kubesec/kubesec:v2
+          options: -v ${{ github.workspace }}:/work:rw --user 1001:1001
+          run: |
+            apk --update add jq
+            kubesec scan /work/rendered.yaml | jq --exit-status '.score > 10' >/dev/null
+
+      # TODO: Set up proper posting to GitHub Security
+      #- name: Run kubesec scanner with SARIF output
+      #  uses: addnab/docker-run-action@v3
+      #  with:
+      #    image: kubesec/kubesec:v2
+      #    options: -v ${{ github.workspace }}:/work:rw --user 1001:1001
+      #    run: kubesec scan --format=template --template=/work/.github/workflows/kubesec-sarif.tpl --exit-code=0 /work/rendered.yaml >/work/kubesec-results.sarif
+
+      #- name: Upload Kubesec scan results to GitHub Security tab
+      #  uses: github/codeql-action/upload-sarif@v2
+      #  with:
+      #    sarif_file: kubesec-results.sarif

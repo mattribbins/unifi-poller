@@ -1,0 +1,22 @@
+{{- if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" }}
+{{- if and .Values.serviceMonitor.enabled (not .Values.config.prometheus.disable) }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "unifi-poller.fullname" . }}
+  labels:
+    {{- include "unifi-poller.labels" . | nindent 4 }}
+spec:
+  endpoints:
+    - targetPort: metrics
+      interval: {{ .Values.serviceMonitor.scrapeInterval }}
+  {{- if .Values.serviceMonitor.jobLabel }}
+  jobLabel: {{ .Values.serviceMonitor.jobLabel | quote }}
+  {{- end }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels: {}
+{{- end }}
+{{- end }}
